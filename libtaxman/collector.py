@@ -2,6 +2,7 @@
 
 from configparser import ConfigParser, SectionProxy
 from gdata_subm import Gdata
+import time
 
 
 class BaseCollector:
@@ -10,7 +11,10 @@ class BaseCollector:
     """
     def __init__(self, config: SectionProxy):
         self.config = config  # This is the relevant section of the config
-        self.next_schedule = 0
+        self.next_sched = time.time()
+
+    def sched_next(self):
+        self.next_sched += int(self.config['interval'])
     
     def get_data_for_sub(self) -> Gdata:
         """
