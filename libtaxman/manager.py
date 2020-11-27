@@ -66,6 +66,7 @@ class CollectorManager:
         """
         now = time.time()
 
+        sl_time = 60
         for pi in self.plugins.values():
             tmp = pi.inst.next_sched - now
             # Make sure we're not going backwards
@@ -94,10 +95,6 @@ class CollectorManager:
         # Reset the data after it's been sent
         for pi in self.plugins.values():
             pi.data = []
-
-        # Set the next submission time
-        self._next_submit = self._get_next_submit()
-
 
     def _get_data_from_plugins(self, to_run: List[PluginInfo], workers: int):
         """
