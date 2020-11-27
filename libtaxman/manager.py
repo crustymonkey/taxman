@@ -27,7 +27,6 @@ class CollectorManager:
         self.config = config
         self.plugins = {}
         self._stop = False
-        self._next_submit = self._get_next_submit()
         self._submitter = GdataSubmit(
             url=self.config['main']['submission_url'],
             username=self.config['main']['submission_username'],
@@ -50,9 +49,8 @@ class CollectorManager:
                     self._get_data_from_plugins(to_run, w)
                 except Exception as e:
                     logging.error(f'Failed to get data from plugins: {e}')
-            
-            if self._next_submit < now:
-                self._submit_all_data()
+                else:
+                    self._submit_all_data()
 
             sl_time = self._get_next_sleep()
             logging.debug(f'Sleeping for {sl_time:.02f}')
@@ -67,9 +65,6 @@ class CollectorManager:
         next scheduled to run
         """
         now = time.time()
-        sl_time = self._next_submit - now
-        if sl_time < 0.1:
-            sl_time = 0.1
 
         for pi in self.plugins.values():
             tmp = pi.inst.next_sched - now
@@ -122,14 +117,6 @@ class CollectorManager:
                 finally:
                     logging.debug(f'Got data from {pi.name}')
                     pi.inst.sched_next()
-
-
-    def _get_next_submit(self) -> float:
-        """
-        This just figures out when we should next submit data
-        """
-        now = time.time()
-        return now + (60 - (now % 60))
 
     def _init_plugins(self):
         """
