@@ -2,6 +2,7 @@
 from libtaxman.collector import BaseCollector
 from gdata_subm import Gdata
 import subprocess as sp
+import json
 
 class SpeedtestCollector(BaseCollector):
 
@@ -11,7 +12,7 @@ class SpeedtestCollector(BaseCollector):
             return None
         return Gdata(
             plugin='bandwidth',
-            dstypes=['gauge'] * len(counters),
+            dstypes=['gauge'] * 3,
             values=[counters['download'], counters['upload'], counters['ping']],
             dsnames=['down', 'up', 'ping'],
             interval=int(self.config['interval']),
