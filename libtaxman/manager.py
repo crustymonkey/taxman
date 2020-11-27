@@ -107,7 +107,12 @@ class CollectorManager:
             for fut in as_completed(fut_to_pi.keys()):
                 pi = fut_to_pi[fut]
                 try:
-                    pi.data.append(fut.result())
+                    res = fut.result()
+                    if res:
+                        pi.data.append(res)
+                    else:
+                        logging.warning(
+                            f'No data returned from plugin {pi.name}')
                 except Exception as e:
                     logging.warning(
                         f'Failed to get data from plugin {pi.name}: {e}')
