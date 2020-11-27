@@ -39,20 +39,47 @@ class CollectorManager:
         while not self._stop:
             to_run = []
             now = time.time()
-            for pi: PluginInfo in self.plugins.values():
-                if pi.inst.next_sched > now:
+            for pi in self.plugins.values():
+                if pi.inst.next_sched < now:
                     to_run.append(pi)
 
             if to_run:
                 # We have some plugins to be run
                 w = self.config.getint('main', 'max_workers')
-                self._get_data_from_plugins(to_run, w)
+                try:
+                    self._get_data_from_plugins(to_run, w)
+                except Exception as e:
+                    logging.error(f'Failed to get data from plugins: {e}')
             
             if self._next_submit < now:
                 self._submit_all_data()
 
+            sl_time = self._get_next_sleep()
+            logging.debug(f'Sleeping for {sl_time:.02f}')
+            time.sleep(sl_time)
+
     def stop(self):
         self._stop = True
+
+    def _get_next_sleep(self):
+        """
+        Calculate how long we need to sleep based on when a plugin is
+        next scheduled to run
+        """
+        now = time.time()
+        sl_time = self._next_submit - now
+        if sl_time < 0.1:
+            sl_time = 0.1
+
+        for pi in self.plugins.values():
+            tmp = pi.inst.next_sched - now
+            # Make sure we're not going backwards
+            tmp = 0.1 if tmp < 0.1 else tmp
+
+            if tmp < sl_time:
+                sl_time = tmp
+
+        return sl_time
 
     def _submit_all_data(self):
         """
@@ -61,9 +88,21 @@ class CollectorManager:
         to_sub = []
         for pi in self.plugins.values():
             to_sub.extend(pi.data)
+
+        logging.debug('Submitting all data to the server')
+        try:
+            self._submitter.send_data(to_sub)
+        except Exception as e:
+            logging.error(f'Failed to send data to the server: {e}')
+            return
+
+        # Reset the data after it's been sent
+        for pi in self.plugins.values():
             pi.data = []
 
-        self._submitter.send_data(to_sub)
+        # Set the next submission time
+        self._next_submit = self._get_next_submit()
+
 
     def _get_data_from_plugins(self, to_run: List[PluginInfo], workers: int):
         """
@@ -71,9 +110,9 @@ class CollectorManager:
         schedule the next run of the plugin based on its interval
         """
         with ThreadPoolExecutor(max_workers=workers) as exe:
-            fut_to_pi = {exe.submit(pi.get_data_for_sub): pi 
+            fut_to_pi = {exe.submit(pi.inst.get_data_for_sub): pi 
                 for pi in to_run}
-            for fut in as_completed:
+            for fut in as_completed(fut_to_pi.keys()):
                 pi = fut_to_pi[fut]
                 try:
                     pi.data.append(fut.result())
@@ -81,6 +120,7 @@ class CollectorManager:
                     logging.warning(
                         f'Failed to get data from plugin {pi.name}: {e}')
                 finally:
+                    logging.debug(f'Got data from {pi.name}')
                     pi.inst.sched_next()
 
 
