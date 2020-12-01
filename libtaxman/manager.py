@@ -109,7 +109,9 @@ class CollectorManager:
                 try:
                     res = fut.result()
                     if res:
-                        pi.data.append(res)
+                        if not isinstance(res, (list, tuple)):
+                            res = [res]
+                        pi.data.extend(res)
                     else:
                         logging.warning(
                             f'No data returned from plugin {pi.name}')
