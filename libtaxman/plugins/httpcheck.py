@@ -96,7 +96,7 @@ class HttpHealthCollector(BaseCollector):
     def _get_rcode(self, url: str) -> int:
         start = time.time()
         try:
-            resp = urlopen(url)
+            resp = urlopen(url, timeout=2)
         except Exception as e:
             logging.warning(f'urlopen for url "{url}" failed: {e}')
             return 0
