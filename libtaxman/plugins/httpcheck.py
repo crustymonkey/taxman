@@ -74,18 +74,16 @@ class HttpHealthCollector(BaseCollector):
         ret = {}
         workers = int(self.config['max_workers'])
         with ThreadPoolExecutor(max_workers=workers) as exe:
-            start = time.time()
             fut_to_url = {
                 exe.submit(self._get_rcode, k): k
                 for k in self._site_map
             }
 
             for fut in as_completed(fut_to_url.keys()):
-                latency = time.time() - start
                 url = fut_to_url[fut]
                 health = 0
                 try:
-                    res = fut.result()
+                    res, latency = fut.result()
                 except Exception as e:
                     logging.warning(
                         f'Failed to get a response for {site}')
@@ -96,13 +94,16 @@ class HttpHealthCollector(BaseCollector):
         return ret
 
     def _get_rcode(self, url: str) -> int:
+        start = time.time()
         try:
             resp = urlopen(url)
         except Exception as e:
             logging.warning(f'urlopen for url "{url}" failed: {e}')
             return 0
 
-        return int(resp.getcode())
+        latency = time.time() - start
+
+        return (int(resp.getcode()), latency)
 
     def _pop_site_map(self):
         for site in self.config['sites_https'].split():
