@@ -16,6 +16,12 @@ class Site:
     url: str
 
 
+@dataclass
+class Result:
+    result: int  # 1 or 0
+    latency: float
+
+
 class HttpHealthCollector(BaseCollector):
 
     def __init__(self, *args, **kwargs):
@@ -25,24 +31,40 @@ class HttpHealthCollector(BaseCollector):
 
     def get_data_for_sub(self) -> Gdata:
         health = self._get_health()
-        dsnames = []
-        values = []
 
-        for url, metric in health.items():
+        health_dsnames = []
+        latency_dsnames = []
+        health_values = []
+        latency_values = []
+
+        for url, res in health.items():
             site = self._site_map[url]
             name = 'https.' if site.https else 'http.'
             name += site.site.replace('.', '_')
 
-            dsnames.append(name)
-            values.append(metric)
+            health_dsnames.append(f'{name}.health')
+            latency_dsnames.append(f'{name}.latency')
+            health_values.append(res.result)
+            latency_values.append(res.latency)
 
-        return Gdata(
-            plugin='httpcheck',
-            dstypes=['gauge'] * len(health),
-            values=values,
-            dsnames=dsnames,
-            interval=int(self.config['interval']),
-        )
+
+        return [
+            Gdata(
+                plugin='httpcheck',
+                dstypes=['gauge'] * len(health),
+                values=health_values,
+                dsnames=health_dsnames,
+                interval=int(self.config['interval']),
+            ),
+            Gdata(
+                plugin='httpcheck',
+                dstypes=['gauge'] * len(health),
+                values=latency_values,
+                dsnames=latency_dsnames,
+                interval=int(self.config['interval']),
+            ),
+
+        ]
 
     def _get_health(self):
         """
@@ -51,21 +73,24 @@ class HttpHealthCollector(BaseCollector):
         ret = {}
         workers = int(self.config['max_workers'])
         with ThreadPoolExecutor(max_workers=workers) as exe:
+            start = time.time()
             fut_to_url = {
                 exe.submit(self._get_rcode, k): k
                 for k in self._site_map
             }
 
             for fut in as_completed(fut_to_url.keys()):
+                latency = time.time() - start
                 url = fut_to_url[fut]
+                health = 0
                 try:
                     res = fut.result()
                 except Exception as e:
                     logging.warning(
                         f'Failed to get a response for {site}')
-                    ret[url] = 0
                 else:
-                    ret[url] = 1 if res == 200 else 0
+                    health = 1 if res == 200 else 0
+                ret[url] = Result(result=health, latency=latency)
 
         return ret
 
