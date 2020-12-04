@@ -1,35 +1,31 @@
 
-from libtaxman.collector import BaseCollector
 from gdata_subm import Gdata
+from libtaxman.plugins.libprocstats import get_stats_for_file
+from libtaxman.collector import BaseCollector
 
 class NetstatCollector(BaseCollector):
     STAT_FILE = '/proc/net/netstat'
 
-    def get_data_for_sub(self) -> Gdata:
+    def get_data_for_sub(self) -> List[Gdata]:
         counters = self._get_counters()
-        return Gdata(
-            plugin='netstat',
-            dstypes=['counter'] * len(counters),
-            values=list(counters.values()),
-            dsnames=list(counters.keys()),
-            interval=int(self.config['interval']),
-        )
+        ret = []
+
+        for prefix, data in counters.items():
+            ret.append(Gdata(
+                plugin='netstat',
+                dtype=prefix,
+                dstypes=['counter'] * len(data),
+                values=list(data.values()),
+                dsnames=list(data.keys()),
+                interval=int(self.config['interval']),
+            ))
+
+        return ret
 
     def _get_counters(self):
         """
         This will get all the current counters from netstat
         """
-        ret = {}
-        with open(self.STAT_FILE) as fh:
-            keys = []
-            values = []
-            for i, line in enumerate(fh):
-                if i % 2 == 0:
-                    # These are keys
-                    keys = [s.strip() for s in line.split()[1:]]
-                else:
-                    # These are the values
-                    values = [s.strip() for s in line.split()[1:]]
-                    ret.update(zip(keys, values))
+        stats = get_stats_for_file(self.STAT_FILE)
 
-        return ret
+        return stats
