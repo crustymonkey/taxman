@@ -16,7 +16,7 @@ def get_stats_for_file(fname: str):
             if regex.search(line):
                 return func(fname)
 
-    raise UnsupportedDataFormat
+    raise UnsupportedDataFormat(f'Did not match a line format for file: {fname}')
 
 
 def _get_netstat_file(fname: str):
@@ -41,5 +41,5 @@ def _get_netstat_file(fname: str):
 
 # This is a map to first line regex -> func pointer
 FIRST_LINE_MATCH = {
-    re.compile(r'^\w+:\s+[a-zA-Z\s]+$'): _get_netstat_file,
+    re.compile(r'^\w+:\s+[a-zA-Z[\w\s]+$'): _get_netstat_file,
 }

@@ -2,12 +2,20 @@
 from gdata_subm import Gdata
 from libtaxman.plugins.libprocstats import get_stats_for_file
 from libtaxman.collector import BaseCollector
+from typing import List
+
+import logging
+
 
 class NetstatCollector(BaseCollector):
     STAT_FILE = '/proc/net/netstat'
 
     def get_data_for_sub(self) -> List[Gdata]:
-        counters = self._get_counters()
+        try:
+            counters = self._get_counters()
+        except Exception as e:
+            logging.warning(f'Failed to get netstat counters: {e}')
+            raise
         ret = []
 
         for prefix, data in counters.items():
