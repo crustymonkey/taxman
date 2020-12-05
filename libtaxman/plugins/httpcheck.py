@@ -82,13 +82,16 @@ class HttpHealthCollector(BaseCollector):
             for fut in as_completed(fut_to_url.keys()):
                 url = fut_to_url[fut]
                 health = 0
+                latency = 0
+
                 try:
-                    res, latency = fut.result()
+                    code, latency = fut.result()
                 except Exception as e:
                     logging.warning(
-                        f'Failed to get a response for {site}')
+                        f'Failed to get a response for {url}')
                 else:
-                    health = 1 if res == 200 else 0
+                    health = 1 if code == 200 else 0
+
                 ret[url] = Result(result=health, latency=latency)
 
         return ret
@@ -99,7 +102,7 @@ class HttpHealthCollector(BaseCollector):
             resp = urlopen(url, timeout=2)
         except Exception as e:
             logging.warning(f'urlopen for url "{url}" failed: {e}')
-            return 0
+            return (0, time.time() - start)
 
         latency = time.time() - start
 
