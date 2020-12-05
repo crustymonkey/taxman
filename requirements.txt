@@ -1,1 +1,7 @@
-gdata_subm >= 0.1.2
+certifi==2020.12.5
+chardet==3.0.4
+gdata-subm>=0.1.2
+idna==2.10
+pfsense-fauxapi==20200718.2
+requests==2.25.0
+urllib3==1.26.2
