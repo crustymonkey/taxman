@@ -49,7 +49,7 @@ class PfsenseCollector(BaseCollector):
                     dstypes.append('gauge')
                 else:
                     dstypes.append('counter')
-                values.append(v)
+                values.append(float(v))
 
             ret.append(Gdata(
                 plugin='pfsense',
@@ -79,13 +79,13 @@ class PfsenseCollector(BaseCollector):
         """
         Get stats from the server
         """
-        ret = {}
+        ret = {'interface': {}}
         # First, get the interface stats
         for iface in self.config['interfaces'].split():
             iface = iface.strip()
             stats = self._fapi.interface_stats(iface)
             if stats and stats['message'] == 'ok':
-                ret['interface'] = {iface: stats['data']['stats']}
+                ret['interface'][iface] = stats['data']['stats']
             else:
                 logging.warning(
                     f'Failed to get interface stats for {iface}')
