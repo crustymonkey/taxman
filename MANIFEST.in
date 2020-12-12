@@ -1,0 +1,4 @@
+include requirements.txt
+include taxman.example.ini
+include LICENSE
+recursive-include plugin_data/**
