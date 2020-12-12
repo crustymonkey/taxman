@@ -19,7 +19,8 @@ from typing import Union, List
 
 class MyCollector(BaseCollector):
     def get_data_for_sub(self) -> Union[Gdata, List[Gdata]]:
-        # This is where you'll implement your collector
+        # This is where you'll implement your collector and return either
+        # a Gdata object or a list of Gdata objects
         pass
 ```
 
