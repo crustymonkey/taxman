@@ -4,7 +4,7 @@ An easily pluggable host level metrics collector.  There are a number of plugins
 # Getting Running with Default Plugins
 Your path to getting running is primarily the configuration of your taxman.ini file.  The `[main]` section is where you are going to define the remote receiver and associated username/password.  This works in much the same way as the `collectd` `write_http` plugin.
 
-Beyond that, you want to enable the default plugins you are intested in.  To get it up and running, just run `taxman.py -c path/to/config`.
+Beyond that, you want to enable the default plugins you are intested in.  You can enabled them by adding them to the list of `plugins_enabled`.  To get it up and running, just run `taxman.py -c path/to/config`.
 
 # Creating Your Own Plugin
 First, create a file in `libtaxman/plugins` with a legal Python module name.  For the purposes of these examples, we'll say your plugin file is named `myexample.py`.
