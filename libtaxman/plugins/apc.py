@@ -46,22 +46,28 @@ class APCCollector(BaseCollector):
             line = line.strip().lower()
             if not line:
                 continue
-
-            key, val = [s.strip() for s in line.split(':')]
-            if key == 'bcharge':
-                ret['charge.perc'] = float(val.split()[0])
-            elif key == 'status':
-                ret['status'] = 1 if val == 'online' else 0
-            elif key == 'timeleft':
-                t, unit = val.split()
-                ret['time_left'] = self._time2sec(t, unit)
-            elif key == 'loadpct':
-                ret['load.perc'] = float(val.split()[0])
-            elif key == 'tonbatt':
-                t, unit = val.split()
-                ret['tm_on_batt'] = self._time2sec(t, unit)
-            elif key == 'nompower':
-                ret['nom_power.watts'] = float(val.split()[0])
+            
+            try:
+                key, val = [s.strip() for s in line.split(':', maxsplit=1)]
+                if key == 'bcharge':
+                    ret['charge.perc'] = float(val.split()[0])
+                elif key == 'status':
+                    ret['status'] = 1 if val == 'online' else 0
+                elif key == 'timeleft':
+                    t, unit = val.split()
+                    ret['time_left'] = self._time2sec(t, unit)
+                elif key == 'loadpct':
+                    ret['load.perc'] = float(val.split()[0])
+                elif key == 'tonbatt':
+                    t, unit = val.split()
+                    ret['tm_on_batt'] = self._time2sec(t, unit)
+                elif key == 'nompower':
+                    ret['nom_power.watts'] = float(val.split()[0])
+            except Exception as e:
+                logging.error(
+                    f'Error parsing output from {self.config["binary"]} '
+                    f'with line "{line}": {e}'
+                )
 
         return ret
 
