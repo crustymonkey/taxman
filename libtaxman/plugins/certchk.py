@@ -5,6 +5,8 @@ from datetime import datetime
 from gdata_subm import Gdata
 from io import StringIO
 from libtaxman.collector import BaseCollector
+from OpenSSL import crypto
+import logging
 import string
 import subprocess as sp
 
@@ -18,7 +20,7 @@ class Site:
         return [
             openssl, 's_client',
             '-connect', f'{self.host}:{self.port}',
-            '-servername': self.host,
+            '-servername', self.host,
         ]
 
     def __str__(self):
@@ -34,14 +36,14 @@ class CertChk(BaseCollector):
 
     def get_data_for_sub(self) -> Gdata:
         counters = self._get_counters()
-        if counters is None:
+        if not counters:
             return None
 
         return Gdata(
             plugin='cert',
             dstypes=['gauge'] * len(counters),
             values=list(counters.values()),
-            dsnames=[str(k) for k in counters],
+            dsnames=list(counters.keys()),
             interval=int(self.config['interval']),
         )
 
@@ -68,7 +70,7 @@ class CertChk(BaseCollector):
                     logging.warning(
                         f'Failed to get a response for {site}: {e}')
                 else:
-                    ret[site] = remaining
+                    ret[str(site)] = remaining
 
         return ret
 
@@ -95,18 +97,22 @@ class CertChk(BaseCollector):
         We need to parse the cert after stripping the header and footer
         """
         tmp = StringIO()
+        in_cert = False
         for line in cert_txt.split('\n'):
             if 'BEGIN' in line:
+                in_cert = True
+            elif not in_cert:
                 continue
-            elif 'END' in line:
-                break
 
             tmp.write(f'{line}\n')
+
+            if 'END ' in line:
+                break
 
         na = self._get_not_after(tmp.getvalue())
         interval = na - datetime.now()
 
-        return interval.seconds
+        return interval.total_seconds()
 
     def _get_not_after(self, pem):
         c = crypto.load_certificate(crypto.FILETYPE_PEM, pem)
