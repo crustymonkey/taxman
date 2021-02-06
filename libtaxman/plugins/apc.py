@@ -1,6 +1,7 @@
 
 from libtaxman.collector import BaseCollector
 from gdata_subm import Gdata
+import logging
 import subprocess as sp
 
 class APCCollector(BaseCollector):
