@@ -2,11 +2,13 @@
 from libtaxman.collector import BaseCollector
 from gdata_subm import Gdata
 import logging
+import re
 import subprocess as sp
 
 class UnboundCollector(BaseCollector):
 
     def get_data_for_sub(self) -> Gdata:
+        self._set_blocklist()
         counters = self._get_counters()
         if counters is None:
             return None
@@ -49,6 +51,24 @@ class UnboundCollector(BaseCollector):
                 continue
 
             k, v = line.split('=', maxsplit=1)
+
+            skip = False
+            for bl in self.blocklist:
+                if bl.search(k):
+                    skip = True
+                    break
+            if skip:
+                continue
+
             ret[k] = float(v)
 
         return ret
+
+    def _set_blocklist(self):
+        self.blocklist = []
+        for bl in self.config['blocklist'].split(';'):
+            bl = bl.strip()
+            if not bl:
+                continue
+
+            self.blocklist.append(re.compile(bl, re.I))
