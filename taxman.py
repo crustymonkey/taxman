@@ -21,7 +21,7 @@ def get_args():
 
 
 def get_conf(args):
-    conf = TaxmanConfig()
+    conf = TaxmanConfig(allow_no_value=True)
     conf.read(args.config)
 
     return conf
