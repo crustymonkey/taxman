@@ -53,7 +53,12 @@ class WeatherCollector(BaseCollector):
             'units': self.config['units'],
         }
         url = f'{self._url}?{urlencode(req_dict)}'
-        res = urlopen(url)
+        res = urlopen(url, timeout=55)
+        
+        if res.status < 200 or res.status >= 300:
+            logging.error(
+                f'Failed to get weather info with status {res.status}'
+            )
 
         return json.loads(res.read().decode('utf-8'))
 
