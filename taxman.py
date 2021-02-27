@@ -30,7 +30,10 @@ def get_conf(args):
 def setup_logging(args):
     level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(
-        format='%(asctime)s - %(levelname)s - %(message)s',
+        format=(
+            '%(asctime)s - %(levelname)s - '
+            '%(filename)s:%(lineno)d %(funcName)s - %(message)s'
+        ),
         level=level,
     )
 
