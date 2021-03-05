@@ -70,6 +70,11 @@ class APCCollector(BaseCollector):
                     f'with line "{line}": {e}'
                 )
 
+        # Calculate current wattage used
+        ret['cur_power.watts'] = (
+            (ret['load.perc'] / 100) * ret['nom_power.watts']
+        )
+
         return ret
 
     def _time2sec(self, t, unit):
