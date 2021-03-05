@@ -1,8 +1,9 @@
 
 from libtaxman.collector import BaseCollector
 from gdata_subm import Gdata
-import subprocess as sp
 import json
+import logging
+import subprocess as sp
 
 class SpeedtestCollector(BaseCollector):
 
