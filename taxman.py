@@ -24,6 +24,12 @@ def get_conf(args):
     conf = TaxmanConfig(allow_no_value=True)
     conf.read(args.config)
 
+    if 'APPDIR' in os.environ:
+        conf['DEFAULT']['data_dir'] = os.path.join(
+            os.environ['APPDIR'],
+            'plugin_data',
+        )
+
     return conf
 
 
@@ -43,7 +49,7 @@ def main():
     setup_logging(args)
 
     conf = get_conf(args)
-
+    
     mgr = CollectorManager(conf)
     mgr.run()
 
