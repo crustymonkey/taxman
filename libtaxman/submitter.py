@@ -24,6 +24,8 @@ class Submitter(Thread):
         while not self._stop.is_set():
             try:
                 data = self.res_q.get(timeout=0.1)
+                if not isinstance(data, (tuple, list)):
+                    data = [data]
             except Empty:
                 # Hit the timeout
                 continue
