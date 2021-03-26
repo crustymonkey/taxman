@@ -7,6 +7,7 @@ from gdata_subm import Gdata
 from libtaxman.collector import BaseCollector
 from PfsenseFauxapi.PfsenseFauxapi import PfsenseFauxapi
 from typing import List
+import logging
 
 
 class PfsenseCollector(BaseCollector):
