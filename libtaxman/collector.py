@@ -5,6 +5,7 @@ from gdata_subm import Gdata
 from threading import Thread, Event
 from queue import Queue
 from typing import List, Union
+import logging
 import time
 
 
@@ -35,6 +36,7 @@ class BaseCollector(Thread):
         """
         This basically triggers a run event for the thread
         """
+        logging.debug(f'A run has been scheduled in: {self.__class__.__name__}')
         self.run_ev.set()
         self.sched_next()
 
