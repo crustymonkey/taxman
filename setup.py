@@ -10,7 +10,7 @@ def get_requirements():
 
 setup(
     name='taxman',
-    version='0.2.0',
+    version='0.2.1',
     author='Jay Deiman',
     author_email='admin@splitstreams.com',
     description=(
