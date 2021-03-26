@@ -29,8 +29,12 @@ class BaseCollector(Thread):
             # Reset the run event
             self.run_ev.clear()
 
-            data = self.get_data_for_sub()
-            self._res_q.put(data, timeout=1)
+            try:
+                data = self.get_data_for_sub()
+                self._res_q.put(data, timeout=1)
+            except Exception as e:
+                logging.error(
+                    f'Failed to get stats from {self.__class__.__name__}: {e}')
 
     def run_now(self):
         """
