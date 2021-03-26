@@ -1,12 +1,12 @@
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from configparser import SectionProxy
 from dataclasses import dataclass
-from gdata_subm import Gdata, GdataSubmit
 from importlib import import_module
 from libtaxman.collector import BaseCollector
 from libtaxman.config import TaxmanConfig
 from libtaxman.errors import InvalidConfig
+from libtaxman.submitter import Submitter
+from queue import Queue
 from typing import Any, List
 
 import logging
@@ -17,7 +17,6 @@ import time
 class PluginInfo:
     name: str
     inst: Any
-    data: List[Gdata]
 
 
 class CollectorManager:
@@ -27,37 +26,38 @@ class CollectorManager:
         self.config = config
         self.plugins = {}
         self._stop = False
-        self._submitter = GdataSubmit(
-            url=self.config['main']['submission_url'],
-            username=self.config['main']['submission_username'],
-            password=self.config['main']['submission_password'],
-        )
+        self._submitter = None
+        self._res_q = Queue()
+        self._init_submitter()
         self._init_plugins()
 
     def run(self):
         while not self._stop:
-            to_run = []
             now = time.time()
             for pi in self.plugins.values():
-                if pi.inst.next_sched < now:
-                    to_run.append(pi)
-
-            if to_run:
-                # We have some plugins to be run
-                w = self.config.getint('main', 'max_workers')
-                try:
-                    self._get_data_from_plugins(to_run, w)
-                except Exception as e:
-                    logging.error(f'Failed to get data from plugins: {e}')
-                else:
-                    self._submit_all_data()
+                if pi.inst.next_sched <= now:
+                    pi.inst.run_now()
 
             sl_time = self._get_next_sleep()
             logging.debug(f'Sleeping for {sl_time:.02f}')
             time.sleep(sl_time)
 
+        # If we get here, stop was set so we stop the plugin threads and
+        # the submitter
+        self._stop_all()
+
     def stop(self):
         self._stop = True
+
+
+    def _stop_all(self):
+        """
+        Stop all other threads
+        """
+        for pi in self.plugins.values():
+            pi.inst.stop()
+
+        self._submitter.stop()
 
     def _get_next_sleep(self):
         """
@@ -77,50 +77,9 @@ class CollectorManager:
 
         return sl_time
 
-    def _submit_all_data(self):
-        """
-        Submit all of our accumulated data to the server
-        """
-        to_sub = []
-        for pi in self.plugins.values():
-            to_sub.extend(pi.data)
-
-        logging.debug('Submitting all data to the server')
-        try:
-            self._submitter.send_data(to_sub)
-        except Exception as e:
-            logging.error(f'Failed to send data to the server: {e}')
-            return
-
-        # Reset the data after it's been sent
-        for pi in self.plugins.values():
-            pi.data = []
-
-    def _get_data_from_plugins(self, to_run: List[PluginInfo], workers: int):
-        """
-        This will concurrently get the data from all the plugins and then
-        schedule the next run of the plugin based on its interval
-        """
-        with ThreadPoolExecutor(max_workers=workers) as exe:
-            fut_to_pi = {exe.submit(pi.inst.get_data_for_sub): pi 
-                for pi in to_run}
-            for fut in as_completed(fut_to_pi.keys()):
-                pi = fut_to_pi[fut]
-                try:
-                    res = fut.result()
-                    if res:
-                        if not isinstance(res, (list, tuple)):
-                            res = [res]
-                        pi.data.extend(res)
-                    else:
-                        logging.warning(
-                            f'No data returned from plugin {pi.name}')
-                except Exception as e:
-                    logging.warning(
-                        f'Failed to get data from plugin {pi.name}: {e}')
-                finally:
-                    logging.debug(f'Got data from {pi.name}')
-                    pi.inst.sched_next()
+    def _init_submitter(self):
+        self._submitter = Submitter(self._res_q, self.config)
+        self._submitter.start()
 
     def _init_plugins(self):
         """
@@ -144,10 +103,10 @@ class CollectorManager:
             sp = self.config[pname]  # Returns a SectionProxy
             logging.debug(f'Initializing plugin: {pname}')
             inst = self._get_plug_inst(pname, sp)
+            inst.start()
             self.plugins[pname] = PluginInfo(
                 name=pname,
                 inst=inst,
-                data=[]
             )
             logging.debug(f'Successfully initialized plugin: {pname}')
 
@@ -159,4 +118,4 @@ class CollectorManager:
         mod = import_module(f'{self.PLUGIN_BASE}.{plug_name}')
         klass = getattr(mod, sp['name'])
 
-        return klass(sp)
+        return klass(self._res_q, sp)

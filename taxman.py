@@ -6,6 +6,9 @@ import sys
 from argparse import ArgumentParser
 from libtaxman.config import TaxmanConfig
 from libtaxman.manager import CollectorManager
+from signal import signal, SIGINT, SIGTERM, SIGHUP
+
+MANAGER = None
 
 
 def get_args():
@@ -44,13 +47,24 @@ def setup_logging(args):
     )
 
 
+def sig_handler(num, frame):
+    MANAGER.stop()
+
+
+def setup_signals():
+    for sig in (SIGINT, SIGTERM, SIGHUP):
+        signal(sig, sig_handler)
+
 def main():
+    global MANAGER
     args = get_args()
     setup_logging(args)
+    setup_signals()
 
     conf = get_conf(args)
     
     mgr = CollectorManager(conf)
+    MANAGER = mgr
     mgr.run()
 
     return 0
