@@ -27,9 +27,13 @@ class WeatherCollector(BaseCollector):
     def get_data_for_sub(self) -> Gdata:
         ret = None
         tmp = {}
-        for norm_city, city in self.cities.items():
-            data = self._get_remote_data_by_id(city['_id'])
-            tmp[norm_city] = data
+        try:
+            for norm_city, city in self.cities.items():
+                data = self._get_remote_data_by_id(city['_id'])
+                tmp[norm_city] = data
+        except Exception:
+            logging.exception("Failed to get weather data")
+            return None
         
         dtype_inst = 'temp_f' if self.config['units'] == 'imperial' \
             else 'temp_c'

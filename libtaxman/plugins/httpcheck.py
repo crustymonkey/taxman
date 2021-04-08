@@ -31,7 +31,12 @@ class HttpHealthCollector(BaseCollector):
         self._pop_site_map()
 
     def get_data_for_sub(self) -> Gdata:
-        health = self._get_health()
+        health = None
+        try:
+            health = self._get_health()
+        except Exception:
+            logging.exception("Failed to get health in httpcheck")
+            return None
 
         health_dsnames = []
         latency_dsnames = []

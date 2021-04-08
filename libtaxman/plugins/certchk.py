@@ -35,7 +35,12 @@ class CertChk(BaseCollector):
         self._init_sites()
 
     def get_data_for_sub(self) -> Gdata:
-        counters = self._get_counters()
+        counters = None
+        try:
+            counters = self._get_counters()
+        except Exception:
+            logging.exception("Failed to get counters for certchk")
+
         if not counters:
             return None
 

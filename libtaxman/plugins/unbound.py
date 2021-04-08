@@ -8,8 +8,13 @@ import subprocess as sp
 class UnboundCollector(BaseCollector):
 
     def get_data_for_sub(self) -> Gdata:
-        self._set_blocklist()
-        counters = self._get_counters()
+        counters = None
+        try:
+            self._set_blocklist()
+            counters = self._get_counters()
+        except Exception as e:
+            logging.exception("Failed to get unbound counters")
+
         if counters is None:
             return None
 

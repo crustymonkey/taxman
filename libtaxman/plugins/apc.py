@@ -7,7 +7,12 @@ import subprocess as sp
 class APCCollector(BaseCollector):
 
     def get_data_for_sub(self) -> Gdata:
-        counters = self._get_counters()
+        counters = None
+        try:
+            counters = self._get_counters()
+        except Exception:
+            logging.exception("Failed to get APC counters")
+
         if counters is None:
             return None
 

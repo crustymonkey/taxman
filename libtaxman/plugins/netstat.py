@@ -13,9 +13,10 @@ class NetstatCollector(BaseCollector):
     def get_data_for_sub(self) -> List[Gdata]:
         try:
             counters = self._get_counters()
-        except Exception as e:
-            logging.warning(f'Failed to get netstat counters: {e}')
-            raise
+        except Exception:
+            logging.exception('Failed to get netstat counters')
+            return None
+
         ret = []
 
         for prefix, data in counters.items():
