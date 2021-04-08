@@ -8,9 +8,15 @@ import subprocess as sp
 class SpeedtestCollector(BaseCollector):
 
     def get_data_for_sub(self) -> Gdata:
-        counters = self._get_counters()
+        counters = None
+        try:
+            counters = self._get_counters()
+        except Exception as e:
+            logging.exception("Failed to get speedtest counters")
+
         if counters is None:
             return None
+
         return Gdata(
             plugin='bandwidth',
             dstypes=['gauge'] * 3,
