@@ -1,6 +1,7 @@
 
 from libtaxman.collector import BaseCollector
 from gdata_subm import Gdata
+from unbound_console import RemoteControl
 import logging
 import re
 import subprocess as sp
@@ -30,6 +31,15 @@ class UnboundCollector(BaseCollector):
         """
         This will get all the current counters from the apcaccess binary
         """
+        counter_str = ''
+        if self.config.getboolean('use_lib'):
+            counter_str = self._get_counters_lib()
+        else:
+            counter_str = sefl._get_counters_bin()
+
+        return self._parse_counters(counter_str)
+
+    def _get_counters_bin(self):
         cmd = [self.config['binary'], '-c', self.config['config'], 'stats']
         proc = sp.run(
             cmd,
@@ -45,7 +55,31 @@ class UnboundCollector(BaseCollector):
 
             return None
 
-        return self._parse_counters(proc.stdout)
+        return proc.stdout
+
+    def _get_counters_lib(self):
+        cak = {
+            'srv_cert': self.config['ub_server_cert'],
+            'cl_cert': self.config['ub_client_cert'],
+            'cl_key': self.config['ub_client_key'],
+        }
+
+        # Do a path check for the cert/key files and set them to the data
+        # dir if it's not a full path
+        for k, v in cak.items():
+            if not v.startswith('/'):
+                # Set this to the data dir
+                cak[k] = os.path.join(self.config['data_dir'], v)
+
+        rc = RemoteControl(
+            host=self.config['ub_control_host'],
+            port=self.config.getint('ub_control_port'),
+            server_cert=cak['srv_cert'],
+            client_cert=cak['cl_cert'],
+            client_key=cak['cl_key'],
+        )
+
+        return rc.send_command('stats')
 
     def _parse_counters(self, raw_counters):
         ret = {}
