@@ -29,6 +29,15 @@ class APCCollector(BaseCollector):
         This will get all the current counters from the apcaccess binary
         """
         cmd = [self.config['binary']]
+        if 'apc_host' in self.config and self.config['apc_host']:
+            # If a specific host is set, use that here
+            hp = self.config['apc_host']
+            if 'apc_port' in self.config and self.config['apc_port']:
+                # Append the port, if set
+                hp += f':{self.config["apc_port"]}'
+
+            cmd.extend(['-h', hp])
+
         proc = sp.run(
             cmd,
             stdout=sp.PIPE,
