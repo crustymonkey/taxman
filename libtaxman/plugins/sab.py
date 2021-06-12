@@ -21,10 +21,11 @@ class SabCollector(BaseCollector):
 
         return Gdata(
             plugin='sab',
+            dtype='queue',
             dstypes=['gauge'],
             # Invert the paused value
             values=[int(not data['queue']['paused'])],
-            dsnames=['queue_running'],
+            dsnames=['running'],
             interval=int(self.config['interval']),
         )
 
