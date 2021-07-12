@@ -31,7 +31,8 @@ class BaseCollector(Thread):
 
             try:
                 data = self.get_data_for_sub()
-                self._res_q.put(data, timeout=1)
+                if data is not None:
+                    self._res_q.put(data, timeout=1)
             except Exception as e:
                 logging.error(
                     f'Failed to get stats from {self.__class__.__name__}: {e}')
@@ -49,11 +50,10 @@ class BaseCollector(Thread):
 
     def sched_next(self) -> None:
         self.next_sched += int(self.config['interval'])
-    
+
     def get_data_for_sub(self) -> Union[Gdata, List[Gdata]]:
         """
         This is called to get the data for upstream submission and should
         return a Gdata object
         """
         raise NotImplementedError()
-        

@@ -29,7 +29,7 @@ class Submitter(Thread):
             except Empty:
                 # Hit the timeout
                 continue
-            
+
             self._submit_data(data)
 
     def _submit_data(self, data: Union[Gdata, List[Gdata]]):
