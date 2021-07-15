@@ -22,17 +22,17 @@ class PlexCollector(BaseCollector):
     def get_data_for_sub(self) -> Gdata:
         tmp = self.get_session_counts()
 
-        if tmp:
-            return Gdata(
-                plugin='plex',
-                dstypes=['gauge'] * len(tmp),
-                values=list(tmp.values()),
-                dsnames=list(tmp.keys()),
-                dtype_instance='sessions',
-                interval=int(self.config['interval']),
-            )
-        else:
-            return None
+        if not tmp:
+            tmp['total'] = 0
+
+        return Gdata(
+            plugin='plex',
+            dstypes=['gauge'] * len(tmp),
+            values=list(tmp.values()),
+            dsnames=list(tmp.keys()),
+            dtype_instance='sessions',
+            interval=int(self.config['interval']),
+        )
 
     def get_session_counts(self):
         sessions = self._server.sessions()
