@@ -113,7 +113,8 @@ def _get_ping_results(host, interval, binary) -> List[PingResult]:
     loss_perc = float(m.group(1))
 
     for line in lines:
-        if m := LAT_REG.search(line):
+        m = LAT_REG.search(line)
+        if m:
             lat = float(m.group(1))
             ret.append(PingResult(
                 latency=lat,
