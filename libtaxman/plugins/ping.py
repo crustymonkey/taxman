@@ -109,8 +109,12 @@ def _get_ping_results(host, interval, binary) -> List[PingResult]:
     lines = res.stdout.strip().split('\n')
 
 
-    m = LOSS_REG.search(lines[-2])
-    loss_perc = float(m.group(1))
+    loss_perc = 0.0
+    for line in lines[-3:]:
+        m = LOSS_REG.search(lines[-2])
+        if m:
+            loss_perc = float(m.group(1))
+            break
 
     for line in lines:
         m = LAT_REG.search(line)
