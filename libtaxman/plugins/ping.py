@@ -111,7 +111,7 @@ def _get_ping_results(host, interval, binary) -> List[PingResult]:
 
     loss_perc = 0.0
     for line in lines[-3:]:
-        m = LOSS_REG.search(lines[-2])
+        m = LOSS_REG.search(line)
         if m:
             loss_perc = float(m.group(1))
             break
