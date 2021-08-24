@@ -12,7 +12,7 @@ import re
 import subprocess as sp
 
 
-LOSS_REG = re.compile(r'(\d+)% packet loss')
+LOSS_REG = re.compile(r'([\d\.]+)% packet loss')
 LAT_REG = re.compile(r'time=(\S+)\s')
 
 
