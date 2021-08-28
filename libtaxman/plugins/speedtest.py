@@ -30,7 +30,7 @@ class SpeedtestCollector(BaseCollector):
         This will get all the current counters from speedtest
         """
         cmd = [self.config['binary'], '--json']
-        if self.config['server_id']:
+        if 'server_id' in self.config and self.config['server_id']:
             cmd.extend(['--server', self.config['server_id']])
         proc = sp.run(
             cmd,
@@ -45,5 +45,5 @@ class SpeedtestCollector(BaseCollector):
                 f'{cmd} exited with code {proc.returncode}: {proc.stderr}')
 
             return None
-        
+
         return json.loads(proc.stdout)
