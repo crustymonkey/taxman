@@ -50,7 +50,6 @@ class WeatherCollector(BaseCollector):
         dtype_inst = 'temp_f' if self.config['units'] == 'imperial' \
             else 'temp_c'
 
-        breakpoint()
         ret = [
             Gdata(
                 plugin='weather',
