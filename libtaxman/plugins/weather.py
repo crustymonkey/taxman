@@ -18,6 +18,10 @@ class WeatherCollector(BaseCollector):
             self.config['base_url'].rstrip('/'),
             self.config['base_path'].rstrip('/'),
         )
+        self._aqi_url = '{}/{}'.format(
+            self.config['base_url'].rstrip('/'),
+            self.config['aqi_path'].rstrip('/'),
+        )
 
         self.city_data = defaultdict(list)
         self._load_city_data()
@@ -46,11 +50,12 @@ class WeatherCollector(BaseCollector):
         dtype_inst = 'temp_f' if self.config['units'] == 'imperial' \
             else 'temp_c'
 
+        breakpoint()
         ret = [
             Gdata(
                 plugin='weather',
                 dstypes=['gauge'] * len(tmp),
-                values=[v['main']['temp'] for v in tmp['weather'].values()],
+                values=[tmp[c]['weather']['main']['temp'] for c in tmp],
                 dsnames=list(tmp.keys()),
                 dtype_instance=dtype_inst,
                 interval=int(self.config['interval']),
@@ -61,7 +66,7 @@ class WeatherCollector(BaseCollector):
             ret.append(Gdata(
                 plugin='weather',
                 dstypes=['gauge'] * len(tmp),
-                values=[v[dtype_inst] for v in tmp['aqi'].values()],
+                values=[tmp[c]['aqi'][dtype_inst] for c in tmp],
                 dsnames=list(tmp.keys()),
                 dtype_instance=dtype_inst,
                 interval=int(self.config['interval']),
@@ -89,7 +94,7 @@ class WeatherCollector(BaseCollector):
 
         return json.loads(res.read().decode('utf-8'))
 
-    def _get_remote_aqi_data(lat: float, lon: float) -> Dict[str, float]:
+    def _get_remote_aqi_data(self, lat: float, lon: float) -> Dict[str, float]:
         ret = {}
         req_dict = {
             'APPID': self.config['api_key'],
@@ -97,7 +102,7 @@ class WeatherCollector(BaseCollector):
             'lon': lon,
         }
 
-        url = f'{self._url}?{urlencode(req_dict)}'
+        url = f'{self._aqi_url}?{urlencode(req_dict)}'
         res = urlopen(url, timeout=10)
 
         if res.status < 200 or res.status >= 300:
@@ -108,6 +113,7 @@ class WeatherCollector(BaseCollector):
 
         # Pull what I want out of the raw data
         data = json.loads(res.read().decode('utf-8'))
+        logging.debug(f'AQI data:\n{json.dumps(data, indent=4)}')
         ret['aqi'] = data['list'][0]['main']['aqi']
         ret.update(data['list'][0]['components'])
 
