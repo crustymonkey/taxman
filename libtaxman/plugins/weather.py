@@ -2,6 +2,7 @@
 from collections import defaultdict
 from gdata_subm import Gdata
 from libtaxman.collector import BaseCollector
+from typing import Dict
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
@@ -27,25 +28,46 @@ class WeatherCollector(BaseCollector):
     def get_data_for_sub(self) -> Gdata:
         ret = None
         tmp = {}
+        aqi_types = []
         try:
             for norm_city, city in self.cities.items():
-                data = self._get_remote_data_by_id(city['_id'])
-                tmp[norm_city] = data
-        except Exception:
-            logging.exception("Failed to get weather data")
+                wthr_data = self._get_remote_data_by_id(city['_id'])
+                aqi_data = self._get_remote_aqi_data(
+                    city['coord']['lat'],
+                    city['coord']['lon'],
+                )
+                aqi_types = list(aqi_data.keys()) if aqi_types == [] else []
+                if wthr_data and aqi_data:
+                    tmp[norm_city] = {'weather': wthr_data, 'aqi': aqi_data}
+        except Exception as e:
+            logging.exception(f"Failed to get weather/aqi data: {e}")
             return None
-        
+
         dtype_inst = 'temp_f' if self.config['units'] == 'imperial' \
             else 'temp_c'
 
-        return Gdata(
-            plugin='weather',
-            dstypes=['gauge'] * len(tmp),
-            values=[v['main']['temp'] for v in tmp.values()],
-            dsnames=list(tmp.keys()),
-            dtype_instance=dtype_inst,
-            interval=int(self.config['interval']),
-        )
+        ret = [
+            Gdata(
+                plugin='weather',
+                dstypes=['gauge'] * len(tmp),
+                values=[v['main']['temp'] for v in tmp['weather'].values()],
+                dsnames=list(tmp.keys()),
+                dtype_instance=dtype_inst,
+                interval=int(self.config['interval']),
+            ),
+        ]
+
+        for dtype_inst in aqi_types:
+            ret.append(Gdata(
+                plugin='weather',
+                dstypes=['gauge'] * len(tmp),
+                values=[v[dtype_inst] for v in tmp['aqi'].values()],
+                dsnames=list(tmp.keys()),
+                dtype_instance=dtype_inst,
+                interval=int(self.config['interval']),
+            ))
+
+        return ret
 
     def _get_remote_data_by_id(self, city_id):
         """
@@ -57,14 +79,39 @@ class WeatherCollector(BaseCollector):
             'units': self.config['units'],
         }
         url = f'{self._url}?{urlencode(req_dict)}'
-        res = urlopen(url, timeout=55)
-        
+        res = urlopen(url, timeout=10)
+
         if res.status < 200 or res.status >= 300:
             logging.error(
                 f'Failed to get weather info with status {res.status}'
             )
+            return None
 
         return json.loads(res.read().decode('utf-8'))
+
+    def _get_remote_aqi_data(lat: float, lon: float) -> Dict[str, float]:
+        ret = {}
+        req_dict = {
+            'APPID': self.config['api_key'],
+            'lat': lat,
+            'lon': lon,
+        }
+
+        url = f'{self._url}?{urlencode(req_dict)}'
+        res = urlopen(url, timeout=10)
+
+        if res.status < 200 or res.status >= 300:
+            logging.error(
+                f'Failed to get aqi info with status {res.status}'
+            )
+            return None
+
+        # Pull what I want out of the raw data
+        data = json.loads(res.read().decode('utf-8'))
+        ret['aqi'] = data['list'][0]['main']['aqi']
+        ret.update(data['list'][0]['components'])
+
+        return ret
 
     def _load_city_data(self):
         """
