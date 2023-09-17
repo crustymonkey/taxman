@@ -1,4 +1,5 @@
 
+import logging
 from gdata_subm import Gdata
 from libtaxman.collector import BaseCollector
 from kubernetes import client, config
@@ -44,8 +45,11 @@ class K8sCollector(BaseCollector):
             for cont in entry['containers']:
                 # Get the nanocpu value
                 ret[f'{base_name}.cpu'] = \
-                    float(cont["cpu"].rstrip('n')) / 1_000_000_000
+                    float(cont["usage"]["cpu"].rstrip('n')) / 1_000_000_000
                 # Convert to bytes
-                ret[f'{base_name}.mem'] = float(cont["memory"][:-2]) * 1024
+                ret[f'{base_name}.mem'] = \
+                    float(cont["usage"]["memory"][:-2]) * 1024
+
+        logging.debug(f'Collected from k8s: {ret}')
 
         return ret
