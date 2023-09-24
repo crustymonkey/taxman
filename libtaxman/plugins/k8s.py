@@ -1,8 +1,16 @@
 
 import logging
+import string
 from gdata_subm import Gdata
 from libtaxman.collector import BaseCollector
 from kubernetes import client, config
+
+
+CPU_CONV = {
+    'm': 1_000,
+    'n': 1_000_000_000,
+    'u': 1_000_000_000_000,
+}
 
 
 class K8sCollector(BaseCollector):
@@ -43,9 +51,22 @@ class K8sCollector(BaseCollector):
             )
 
             for cont in entry['containers']:
-                # Get the nanocpu value
-                ret[f'{base_name}.cpu'] = \
-                    float(cont["usage"]["cpu"].rstrip('n')) / 1_000_000_000
+                # Get the cpu value
+                logging.debug(f'Got raw cpu value of {cont["usage"]["cpu"]}')
+                raw_cpu = cont['usage']['cpu']
+                if raw_cpu[-1] not in string.ascii_lowercase:
+                    cval = float(raw_cpu)
+                else:
+                    cnum = cont['usage']['cpu'][:-1]
+                    cunit = cont['usage']['cpu'][-1]
+                    if cunit not in CPU_CONV:
+                        logging.warning(f'Unknown CPU unit for k8s: {cunit}')
+                        cval = float(cnum)
+                    else:
+                        cval = float(cnum) / CPU_CONV[cunit]
+
+                ret[f'{base_name}.cpu'] = cval
+
                 # Convert to bytes
                 ret[f'{base_name}.mem'] = \
                     float(cont["usage"]["memory"][:-2]) * 1024
