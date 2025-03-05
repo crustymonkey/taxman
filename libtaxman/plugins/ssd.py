@@ -54,7 +54,10 @@ class SSDCollector(BaseCollector):
             name = os.path.basename(drv)
             ret[name] = {}
             if name.startswith('sd'):
-                ret[name] = self._get_ssd_data(data)
+                data = self._get_ssd_data(data)
+                if data:
+                    # No data is returned for non-SSDs
+                    ret[name] = data
             else:
                 ret[name] = self._get_nvme_data(data)
 
@@ -66,6 +69,10 @@ class SSDCollector(BaseCollector):
         smartctl
         """
         ret = {}
+
+        if not data['trim']['supported']:
+            # Trim is only supported on SSDs, not spinning disks
+            return ret
 
         for item in data[self.ATA_ATTR_KEY]['table']:
             if item['name'] == 'Power_On_Hours':
