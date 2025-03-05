@@ -49,7 +49,6 @@ class CollectorManager:
     def stop(self):
         self._stop = True
 
-
     def _stop_all(self):
         """
         Stop all other threads
