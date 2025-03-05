@@ -27,6 +27,7 @@ class SSDCollector(BaseCollector):
         for drv, data in metrics.items():
             ret.append(Gdata(
                 plugin='ssd',
+                dtype_instance=drv,
                 dstypes=['gauge'] * len(data),
                 dsnames=list(data.keys()),
                 values=list(data.values()),
