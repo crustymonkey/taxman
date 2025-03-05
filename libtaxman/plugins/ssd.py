@@ -13,6 +13,7 @@ class SSDCollector(BaseCollector):
     ATA_ATTR_KEY = 'ata_smart_attributes'
     NVME_ATTR_KEY = 'nvme_smart_health_information_log'
     DRV_REG = re.compile(r'^(sd[a-z]|nvme\d)$')
+    DRV_LIST = None
 
     def get_data_for_sub(self) -> Gdata:
         ret = None
@@ -52,12 +53,8 @@ class SSDCollector(BaseCollector):
                 continue
 
             name = os.path.basename(drv)
-            ret[name] = {}
             if name.startswith('sd'):
-                data = self._get_ssd_data(data)
-                if data:
-                    # No data is returned for non-SSDs
-                    ret[name] = data
+                ret[name] = self._get_ssd_data(data)
             else:
                 ret[name] = self._get_nvme_data(data)
 
@@ -72,7 +69,7 @@ class SSDCollector(BaseCollector):
 
         if not data['trim']['supported']:
             # Trim is only supported on SSDs, not spinning disks
-            return ret
+            return None
 
         for item in data[self.ATA_ATTR_KEY]['table']:
             if item['name'] == 'Power_On_Hours':
@@ -98,12 +95,29 @@ class SSDCollector(BaseCollector):
         """
         This will only return SSD or NVME drives.  All others will be skipped.
         """
+        if self.DRV_LIST:
+            return self.DRV_LIST
+
         ret = []
         for dev in os.listdir('/dev'):
             if m := self.DRV_REG.match(dev):
-                ret.append(os.path.join('/dev', m.group(1)))
+                if self._is_ssd_nvme(m.group(1)):
+                    ret.append(os.path.join('/dev', m.group(1)))
+
+        self.DRV_LIST = ret
 
         return ret
+
+    def _is_ssd_nvme(self, drv_name):
+        if drv_name.startswith('nvme'):
+            # This is simple
+            return True
+
+        path = os.path.join('/sys/block', drv_name, 'queue/rotational')
+        with open(path) as fh:
+            res = fh.read()
+
+        return res.strip() == '0'
 
     def _get_drv_data(self, drv):
         """
