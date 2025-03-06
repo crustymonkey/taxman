@@ -36,7 +36,7 @@ class UnboundCollector(BaseCollector):
         if self.config.getboolean('use_lib'):
             counter_str = self._get_counters_lib()
         else:
-            counter_str = sefl._get_counters_bin()
+            counter_str = self._get_counters_bin()
 
         return self._parse_counters(counter_str)
 
