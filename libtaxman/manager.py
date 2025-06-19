@@ -102,6 +102,10 @@ class CollectorManager:
             sp = self.config[pname]  # Returns a SectionProxy
             logging.debug(f'Initializing plugin: {pname}')
             inst = self._get_plug_inst(pname, sp)
+            if not inst:
+                logging.error(f'Gave up on initializing {pname}')
+                continue
+
             inst.start()
             self.plugins[pname] = PluginInfo(
                 name=pname,
@@ -114,7 +118,22 @@ class CollectorManager:
         This is a convenience function to get the plugin class instance
         by string name
         """
+        ret = None
         mod = import_module(f'{self.PLUGIN_BASE}.{plug_name}')
         klass = getattr(mod, sp['name'])
 
-        return klass(self._res_q, sp)
+        max_retries = 5
+        tries = 0
+        while tries < max_retries:
+            # Try to get the plugin instance while catching any startup
+            # exceptions
+            tries += 1
+            try:
+                ret = klass(self._res_q, sp)
+            except Exception:
+                logging.exception(f'Failed to initialize plugin {plug_name}')
+                time.sleep(tries ** 2)
+            else:
+                break
+
+        return ret
